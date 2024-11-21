@@ -12,16 +12,16 @@ const Course = sequelize.define('Course', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    grade: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
     semester: {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
     title: {
         type: DataTypes.STRING,
-        allowNull: false,
-    },
-    grade: {
-        type: DataTypes.INTEGER,
         allowNull: false,
     },
     professorName: {
