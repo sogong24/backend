@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/api/Dockerfile
+    container_name: api
+    environment:
+      - PORT=${PORT}
+      - POSTGRES_URI=${POSTGRES_URI}
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    networks:
+      - backend
+
+  db:
+    image: postgres:17
+    container_name: db
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./docker/db/data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: "bridge"
