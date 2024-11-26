@@ -1,4 +1,5 @@
 const sequelize = require('../config/database');
+const Course = require('../models/Course');
 const { oneOneCourses, oneTwoCourses, twoOneCourses, twoTwoCourses, threeOneCourses, threeTwoCourses, fourOneCourses, fourTwoCourses } = require('./data');
 
 async function seedCourses() {
