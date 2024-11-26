@@ -38,7 +38,7 @@ const Note = sequelize.define('Note', {
     fileURL: {
         type: DataTypes.STRING,
         validate: {
-            isUrl: true,
+            isUrl: false,
         },
     },
     likesCount: {
