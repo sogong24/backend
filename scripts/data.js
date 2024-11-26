@@ -84,4 +84,13 @@ const fourTwoCourses = [
     newCourse(4, 2, '컴퓨터과학종합설계', '최혁')
 ]
 
-module.exports = { oneOneCourses, oneTwoCourses, twoOneCourses, twoTwoCourses, threeOneCourses, threeTwoCourses, fourOneCourses, fourTwoCourses };
+module.exports = {
+    oneOneCourses,
+    oneTwoCourses,
+    twoOneCourses,
+    twoTwoCourses,
+    threeOneCourses,
+    threeTwoCourses,
+    fourOneCourses,
+    fourTwoCourses
+};
