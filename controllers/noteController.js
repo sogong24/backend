@@ -56,4 +56,50 @@ exports.dislikeNote = async (req, res) => {
     }
 };
 
-// Additional functions like purchaseNote, downloadNote, deleteNote can be implemented similarly
+exports.purchaseNote = async (req, res) => {
+    const { userID, noteID } = req.params;
+    try {
+        const user = await User.findByPk(userID);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const note = await Note.findByPk(noteID);
+        if (!note) return res.status(404).json({ error: 'Note not found' });
+
+        if (user.point <= 0) return res.status(404).json({ error: 'Not enough points' });
+
+        user.accessibleNoteIDs.append(nodeID);
+        user.point -= 1;
+
+        await user.save();
+        await note.save();
+        res.json(note);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.downloadNote = async (req, res) => {
+    const { noteID } = req.params;
+    try {
+        const note = await Note.findByPk(noteID);
+        if (!note) return res.status(404).json({ error: 'Note not found' });
+
+        await note.save();
+        res.json(note);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.deleteNote = async (req, res) => {
+    const { noteID } = req.params;
+    try {
+        const note = await Note.findByPk(noteID);
+        if (!note) return res.status(404).json({ error: 'Note not found' });
+
+        await note.destroy();
+        res.json(note);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
