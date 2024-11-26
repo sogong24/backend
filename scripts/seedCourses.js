@@ -1,6 +1,8 @@
 const sequelize = require('../config/database');
 const Course = require('../models/Course');
-const { oneOneCourses, oneTwoCourses, twoOneCourses, twoTwoCourses, threeOneCourses, threeTwoCourses, fourOneCourses, fourTwoCourses } = require('./data');
+const User = require('../models/User');
+const Note = require('../models/Note');
+const { courses } = require('./data');
 
 async function seedCourses() {
     try {
@@ -9,14 +11,7 @@ async function seedCourses() {
         await sequelize.sync({ force: true });
 
         // 미리 정의된 데이터 삽입
-        await Course.bulkCreate(oneOneCourses);
-        await Course.bulkCreate(oneTwoCourses);
-        await Course.bulkCreate(twoOneCourses);
-        await Course.bulkCreate(twoTwoCourses);
-        await Course.bulkCreate(threeOneCourses);
-        await Course.bulkCreate(threeTwoCourses);
-        await Course.bulkCreate(fourOneCourses);
-        await Course.bulkCreate(fourTwoCourses);
+        await Course.bulkCreate(courses);
 
         console.log('Database seeded successfully');
     } catch (error) {
