@@ -14,17 +14,29 @@ exports.retrieveNoteList = async (req, res) => {
 };
 
 exports.uploadNote = async (req, res) => {
-    const { uploaderID, courseID, title, description, previewURL, fileURL } = req.body;
+    const { uploaderID, courseID, title, description} = req.body;
     try {
-        const note = await Note.create({
-            uploaderID,
-            courseID,
-            title,
-            description,
-            previewURL,
-            fileURL,
-        });
-        res.status(201).json(note);
+        
+          // Multer로 처리된 파일
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'File is required' });
+        }
+
+        // 파일 경로 생성
+        const fileURL = 'http://localhost:3000/uploads/file.txt';
+        //const fileURL = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+
+        // const note = await Note.create({
+        //     //uploaderID,
+        //     //courseID,
+        //     //title,
+        //     //description,
+        //     //프리뷰 추가   
+        //     //fileURL
+        // });
+        // res.status(201).json(note);
+    
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
