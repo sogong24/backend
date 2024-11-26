@@ -2,6 +2,7 @@
 const request = require('supertest');
 const express = require('express');
 const courseController = require('../controllers/courseController');
+const { oneOneCourses, oneTwoCourses, twoOneCourses, twoTwoCourses, threeOneCourses, threeTwoCourses, fourOneCourses, fourTwoCourses } = require('../scripts/data');
 
 const app = express();
 app.get('/courses', courseController.retrieveCourseList);
