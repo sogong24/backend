@@ -32,13 +32,13 @@ const Note = sequelize.define('Note', {
     previewURL: {
         type: DataTypes.STRING,
         validate: {
-            isUrl: true,
+            // isUrl: true,
         },
     },
     fileURL: {
         type: DataTypes.STRING,
         validate: {
-            isUrl: false,
+            // isUrl: true,
         },
     },
     likesCount: {
