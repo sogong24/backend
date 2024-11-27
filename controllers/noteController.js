@@ -14,6 +14,7 @@ exports.retrieveNoteList = async (req, res) => {
     }
 };
 
+// previewURL 관련 기능 추가 필요
 exports.uploadNote = async (req, res) => {
     const {uploaderID, courseID, title, description} = req.body;
     try {
@@ -36,7 +37,6 @@ exports.uploadNote = async (req, res) => {
             courseID,
             title,
             description,
-            // 프리뷰 추가
             fileURL
         });
         res.status(201).json(note);

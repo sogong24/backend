@@ -39,7 +39,7 @@ describe('Course Controller', () => {
             // Act
             const response = await request(app)
                 .get('/api/courses')
-                .query({ grade: 1, semester: 1 });
+                .query({grade: 1, semester: 1});
 
             // Assert
             expect(Course.findAll).toHaveBeenCalledWith({
@@ -56,19 +56,19 @@ describe('Course Controller', () => {
         it('should return 6 courses for grade 3 and semester 2', async () => {
             // Arrange
             const mockCourses = [
-                { id: 'c1', grade: 3, semester: 2, title: 'Course 1', professorName: 'Prof. A' },
-                { id: 'c2', grade: 3, semester: 2, title: 'Course 2', professorName: 'Prof. B' },
-                { id: 'c3', grade: 3, semester: 2, title: 'Course 3', professorName: 'Prof. C' },
-                { id: 'c4', grade: 3, semester: 2, title: 'Course 4', professorName: 'Prof. D' },
-                { id: 'c5', grade: 3, semester: 2, title: 'Course 5', professorName: 'Prof. E' },
-                { id: 'c6', grade: 3, semester: 2, title: 'Course 6', professorName: 'Prof. F' },
+                {id: 'c1', grade: 3, semester: 2, title: 'Course 1', professorName: 'Prof. A'},
+                {id: 'c2', grade: 3, semester: 2, title: 'Course 2', professorName: 'Prof. B'},
+                {id: 'c3', grade: 3, semester: 2, title: 'Course 3', professorName: 'Prof. C'},
+                {id: 'c4', grade: 3, semester: 2, title: 'Course 4', professorName: 'Prof. D'},
+                {id: 'c5', grade: 3, semester: 2, title: 'Course 5', professorName: 'Prof. E'},
+                {id: 'c6', grade: 3, semester: 2, title: 'Course 6', professorName: 'Prof. F'},
             ];
             Course.findAll.mockResolvedValue(mockCourses);
 
             // Act
             const response = await request(app)
                 .get('/api/courses')
-                .query({ grade: 3, semester: 2 });
+                .query({grade: 3, semester: 2});
 
             // Assert
             expect(Course.findAll).toHaveBeenCalledWith({
@@ -90,11 +90,11 @@ describe('Course Controller', () => {
             // Act
             const response = await request(app)
                 .get('/api/courses')
-                .query({ grade: 1, semester: 1 });
+                .query({grade: 1, semester: 1});
 
             // Assert
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
         });
     });
 });

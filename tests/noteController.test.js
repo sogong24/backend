@@ -1,9 +1,14 @@
 // test/noteController.test.js
+// noinspection DuplicatedCode
+
 const request = require('supertest');
 const express = require('express');
 const noteController = require('../controllers/noteController');
 const Note = require('../models/Note');
 const User = require('../models/User');
+const path = require("node:path");
+const fs = require("node:fs");
+const multer = require("multer");
 
 jest.mock('../models/Note');
 jest.mock('../models/User');
@@ -11,8 +16,11 @@ jest.mock('../models/User');
 const app = express();
 app.use(express.json());
 
+const storage = multer.memoryStorage();
+const upload = multer({storage});
+
 app.get('/api/notes/:courseID', noteController.retrieveNoteList);
-app.post('/api/notes', noteController.uploadNote);
+app.post('/api/notes', upload.single('file'), noteController.uploadNote);
 app.post('/api/notes/:noteID/like', noteController.likeNote);
 app.post('/api/notes/:noteID/dislike', noteController.dislikeNote);
 app.post('/api/notes/:noteID/purchase/:userID', noteController.purchaseNote);
@@ -49,7 +57,7 @@ describe('Note Controller', () => {
 
             // Assert
             expect(Note.findAll).toHaveBeenCalledWith({
-                where: { courseID },
+                where: {courseID},
             });
             expect(response.status).toBe(200);
             expect(response.body.length).toBe(2);
@@ -67,7 +75,7 @@ describe('Note Controller', () => {
 
             // Assert
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
         });
     });
 
@@ -78,22 +86,30 @@ describe('Note Controller', () => {
                 uploaderID: 'u1',
                 courseID: 'c1',
                 title: 'New Note',
-                description: 'Note description',
-                previewURL: 'http://example.com/preview',
-                fileURL: 'http://example.com/file',
+                description: 'Note description'
             };
-            const createdNote = { id: 'n1', ...noteData };
+            const createdNote = {id: 'n1', ...noteData};
             Note.create.mockResolvedValue(createdNote);
+
+            const mockFilePath = path.join(__dirname, '../uploads/test.txt');
+            fs.writeFileSync(mockFilePath, 'This is a mock file content.');
 
             // Act
             const response = await request(app)
                 .post('/api/notes')
-                .send(noteData);
+                .field('uploaderID', noteData.uploaderID)
+                .field('courseID', noteData.courseID)
+                .field('title', noteData.title)
+                .field('description', noteData.description)
+                .attach('file', mockFilePath);
 
             // Assert
-            expect(Note.create).toHaveBeenCalledWith(noteData);
+            expect(Note.create).toHaveBeenCalledWith(expect.objectContaining(noteData));
             expect(response.status).toBe(201);
             expect(response.body).toEqual(createdNote);
+
+            // Clean up
+            fs.unlinkSync(mockFilePath);
         });
 
         it('should handle errors', async () => {
@@ -103,20 +119,28 @@ describe('Note Controller', () => {
                 courseID: 'c1',
                 title: 'New Note',
                 description: 'Note description',
-                previewURL: 'http://example.com/preview',
-                fileURL: 'http://example.com/file',
             };
-            const errorMessage = 'Database error';
+            const errorMessage = 'file is not defined';
             Note.create.mockRejectedValue(new Error(errorMessage));
+
+            const mockFilePath = path.join(__dirname, '../uploads/test.txt');
+            fs.writeFileSync(mockFilePath, 'This is a mock file content.');
 
             // Act
             const response = await request(app)
                 .post('/api/notes')
-                .send(noteData);
+                .field('uploaderID', noteData.uploaderID)
+                .field('courseID', noteData.courseID)
+                .field('title', noteData.title)
+                .field('description', noteData.description)
+                .attach('file', mockFilePath);
 
             // Assert
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
+
+            // Clean up
+            fs.unlinkSync(mockFilePath);
         });
     });
 
@@ -124,9 +148,9 @@ describe('Note Controller', () => {
         it('should increment likesCount of the note', async () => {
             // Arrange
             const noteID = 'n1';
-            const note = { 
-                id: noteID, 
-                likesCount: 10, 
+            const note = {
+                id: noteID,
+                likesCount: 10,
                 save: jest.fn().mockResolvedValue()
             };
             Note.findByPk.mockResolvedValue(note);
@@ -139,7 +163,7 @@ describe('Note Controller', () => {
             expect(note.likesCount).toBe(11);
             expect(note.save).toHaveBeenCalled();
             expect(response.status).toBe(200);
-            const expectedNote = { id: 'n1', likesCount: 11 };
+            const expectedNote = {id: 'n1', likesCount: 11};
             expect(response.body).toMatchObject(expectedNote);
         });
 
@@ -154,7 +178,7 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Note not found' });
+            expect(response.body).toEqual({error: 'Note not found'});
         });
 
         it('should handle errors', async () => {
@@ -168,7 +192,7 @@ describe('Note Controller', () => {
 
             // Assert
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
         });
     });
 
@@ -176,9 +200,9 @@ describe('Note Controller', () => {
         it('should increment dislikesCount of the note', async () => {
             // Arrange
             const noteID = 'n1';
-            const note = { 
-                id: noteID, 
-                dislikesCount: 5, 
+            const note = {
+                id: noteID,
+                dislikesCount: 5,
                 save: jest.fn().mockResolvedValue()
             };
             Note.findByPk.mockResolvedValue(note);
@@ -191,7 +215,7 @@ describe('Note Controller', () => {
             expect(note.dislikesCount).toBe(6);
             expect(note.save).toHaveBeenCalled();
             expect(response.status).toBe(200);
-            const expectedNote = { id: 'n1', dislikesCount: 6 };
+            const expectedNote = {id: 'n1', dislikesCount: 6};
             expect(response.body).toMatchObject(expectedNote);
         });
 
@@ -206,7 +230,7 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Note not found' });
+            expect(response.body).toEqual({error: 'Note not found'});
         });
 
         it('should handle errors', async () => {
@@ -220,7 +244,7 @@ describe('Note Controller', () => {
 
             // Assert
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
         });
     });
 
@@ -235,7 +259,7 @@ describe('Note Controller', () => {
                 accessibleNoteIDs: [],
                 save: jest.fn().mockResolvedValue(),
             };
-            const note = { id: noteID, save: jest.fn().mockResolvedValue() };
+            const note = {id: noteID, save: jest.fn().mockResolvedValue()};
             User.findByPk.mockResolvedValue(user);
             Note.findByPk.mockResolvedValue(note);
 
@@ -250,7 +274,7 @@ describe('Note Controller', () => {
             expect(user.save).toHaveBeenCalled();
             expect(note.save).toHaveBeenCalled();
             expect(response.status).toBe(200);
-            const expectedNote = { id: 'n1' };
+            const expectedNote = {id: 'n1'};
             expect(response.body).toMatchObject(expectedNote);
         });
 
@@ -266,7 +290,7 @@ describe('Note Controller', () => {
             // Assert
             expect(User.findByPk).toHaveBeenCalledWith(userID);
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'User not found' });
+            expect(response.body).toEqual({error: 'User not found'});
         });
 
         it('should return 404 if note not found', async () => {
@@ -289,7 +313,7 @@ describe('Note Controller', () => {
             expect(User.findByPk).toHaveBeenCalledWith(userID);
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Note not found' });
+            expect(response.body).toEqual({error: 'Note not found'});
         });
 
         it('should return 403 if user has not enough points', async () => {
@@ -302,7 +326,7 @@ describe('Note Controller', () => {
                 accessibleNoteIDs: [],
                 save: jest.fn().mockResolvedValue(),
             };
-            const note = { id: noteID, save: jest.fn().mockResolvedValue() };
+            const note = {id: noteID, save: jest.fn().mockResolvedValue()};
             User.findByPk.mockResolvedValue(user);
             Note.findByPk.mockResolvedValue(note);
 
@@ -313,7 +337,7 @@ describe('Note Controller', () => {
             expect(User.findByPk).toHaveBeenCalledWith(userID);
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(403);
-            expect(response.body).toEqual({ error: 'Not enough points' });
+            expect(response.body).toEqual({error: 'Not enough points'});
         });
 
         it('should handle errors', async () => {
@@ -328,7 +352,7 @@ describe('Note Controller', () => {
 
             // Assert
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
         });
     });
 
@@ -350,7 +374,7 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(200);
-            const expectedNote = { id: 'n1', title: 'Note 1', description: 'Description 1' };
+            const expectedNote = {id: 'n1', title: 'Note 1', description: 'Description 1'};
             expect(response.body).toMatchObject(expectedNote);
         });
 
@@ -365,7 +389,7 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Note not found' });
+            expect(response.body).toEqual({error: 'Note not found'});
         });
 
         it('should handle errors', async () => {
@@ -380,7 +404,7 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
         });
     });
 
@@ -388,10 +412,10 @@ describe('Note Controller', () => {
         it('should delete and return the note', async () => {
             // Arrange
             const noteID = 'n1';
-            const note = { 
-                id: noteID, 
-                destroy: jest.fn().mockResolvedValue(), 
-                toJSON: () => ({ id: noteID }) 
+            const note = {
+                id: noteID,
+                destroy: jest.fn().mockResolvedValue(),
+                toJSON: () => ({id: noteID})
             };
             Note.findByPk.mockResolvedValue(note);
 
@@ -402,7 +426,7 @@ describe('Note Controller', () => {
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(note.destroy).toHaveBeenCalled();
             expect(response.status).toBe(200);
-            const expectedNote = { id: 'n1' };
+            const expectedNote = {id: 'n1'};
             expect(response.body).toMatchObject(expectedNote);
         });
 
@@ -417,7 +441,7 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Note not found' });
+            expect(response.body).toEqual({error: 'Note not found'});
         });
 
         it('should handle errors', async () => {
@@ -432,7 +456,7 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(500);
-            expect(response.body).toEqual({ error: errorMessage });
+            expect(response.body).toEqual({error: errorMessage});
         });
     });
 });
