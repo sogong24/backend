@@ -54,8 +54,4 @@ const Note = sequelize.define('Note', {
     timestamps: false,
 });
 
-// Associations
-Note.belongsTo(Course, { foreignKey: 'courseID' });
-Note.belongsTo(User, { foreignKey: 'uploaderID' });
-
 module.exports = Note;

@@ -34,7 +34,7 @@ exports.logIn = async (req, res) => {
 };
 
 exports.editUserInfo = async (req, res) => {
-    const { userId } = req.user; // Assuming auth middleware attaches user info
+    const { userId } = req.user;
     const { password, username } = req.body;
     try {
         const user = await User.findByPk(userId);

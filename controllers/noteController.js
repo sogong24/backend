@@ -1,5 +1,6 @@
 // controllers/noteController.js
 const Note = require('../models/Note');
+const User = require('../models/User');
 
 exports.retrieveNoteList = async (req, res) => {
     const {courseID} = req.params;
@@ -79,10 +80,18 @@ exports.purchaseNote = async (req, res) => {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
 
-        if (user.point <= 0) return res.status(404).json({error: 'Not enough points'});
+        if (user.point <= 0) {
+            return res.status(403).json({ error: 'Not enough points' });
+        }
 
-        user.accessibleNoteIDs.append(nodeID);
-        user.point -= 1;
+        if (!Array.isArray(user.accessibleNoteIDs)) {
+            user.accessibleNoteIDs = [];
+        }
+
+        if (!user.accessibleNoteIDs.includes(noteID)) {
+            user.accessibleNoteIDs.push(noteID);
+            user.point -= 1;
+        }
 
         await user.save();
         await note.save();
@@ -98,7 +107,8 @@ exports.downloadNote = async (req, res) => {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
 
-        await note.save();
+        // Deduct user points.
+
         res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});

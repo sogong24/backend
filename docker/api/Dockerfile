@@ -5,5 +5,5 @@ COPY package*.json .
 RUN npm install
 COPY . .
 EXPOSE 3000
-# scripts/seedCourses.js를 실행해서 과목 데이터를 DB에 갱신함
+# scripts/seedCourses.js를 실행해서 데이터베이스에 courses를 추가.
 CMD ["sh", "-c", "node scripts/seedCourses.js && npm start"]
