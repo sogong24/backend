@@ -5,11 +5,17 @@ const courseRoutes = require('./routes/courseRoutes.js');
 const noteRoutes = require('./routes/noteRoutes.js');
 const userRoutes = require('./routes/userRoutes');
 require('dotenv').config();
+const cors = require('cors');
 
 const app = express();
 
 // Middleware
 app.use(express.json());
+
+app.use(cors({
+    origin: 'http://localhost:3001',
+    credentials: true
+}));
 
 // Routes
 app.use('/api/courses', courseRoutes);
