@@ -31,6 +31,13 @@ router.post('/:noteID/like', auth, noteController.likeNote);
 // POST /api/notes/:noteID/dislike
 router.post('/:noteID/dislike', auth, noteController.dislikeNote);
 
-// Additional routes for purchase, download, delete can be added here
+// POST /api/notes/:noteID/purchase/:userID
+router.post('/:noteID/purchase/:userID', noteController.purchaseNote);
+
+// GET /api/notes/:noteID/download
+router.get('/:noteID/download', noteController.downloadNote);
+
+// DELETE /api/notes/:noteID
+router.delete('/:noteID', noteController.deleteNote);
 
 module.exports = router;

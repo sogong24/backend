@@ -1,6 +1,7 @@
 // controllers/noteController.js
 const Note = require('../models/Note');
 const User = require('../models/User');
+const path = require("node:path");
 
 exports.retrieveNoteList = async (req, res) => {
     const {courseID} = req.params;
@@ -24,13 +25,8 @@ exports.uploadNote = async (req, res) => {
             return res.status(400).json({error: 'File is required'});
         }
 
-        // 파일 이름을 URL 형식에 맞게 변경하는 함수(공백을 +로 변환)
-        function encodeFileName(fileName) {
-            return encodeURIComponent(fileName).replace(/%20/g, '+');
-        }
-
         // 파일 경로 생성
-        const fileURL = `${req.protocol}://${req.get('host')}/uploads/${encodeFileName(file.filename)}`;
+        const fileURL = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
 
         const note = await Note.create({
             uploaderID,
@@ -81,7 +77,7 @@ exports.purchaseNote = async (req, res) => {
         if (!note) return res.status(404).json({error: 'Note not found'});
 
         if (user.point <= 0) {
-            return res.status(403).json({ error: 'Not enough points' });
+            return res.status(403).json({error: 'Not enough points'});
         }
 
         if (!Array.isArray(user.accessibleNoteIDs)) {
@@ -109,7 +105,18 @@ exports.downloadNote = async (req, res) => {
 
         // Deduct user points.
 
-        res.json(note);
+        const relativeFilePath = '.' + new URL(note.fileURL).pathname;
+        let filePath = path.resolve(relativeFilePath);
+
+        // Replace %20 (blank encoding code) to blank
+        filePath = decodeURIComponent(filePath).replace(/\+/g, ' ');
+
+        res.download(filePath, (err) => {
+            if (err) {
+                res.status(500).json({error: err.message});
+            }
+        })
+
     } catch (error) {
         res.status(500).json({error: error.message});
     }
