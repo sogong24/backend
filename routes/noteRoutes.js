@@ -20,10 +20,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // GET /api/notes/:courseID
-router.get('/:courseID', noteController.retrieveNoteList);
+router.get('/:courseID', auth, noteController.retrieveNoteList);
 
 // POST /api/notes
-router.post('/', upload.single('file'), noteController.uploadNote);
+router.post('/', auth, upload.single('file'), noteController.uploadNote);
 
 // POST /api/notes/:noteID/like
 router.post('/:noteID/like', auth, noteController.likeNote);
@@ -32,12 +32,12 @@ router.post('/:noteID/like', auth, noteController.likeNote);
 router.post('/:noteID/dislike', auth, noteController.dislikeNote);
 
 // POST /api/notes/:noteID/purchase/:userID
-router.post('/:noteID/purchase/:userID', noteController.purchaseNote);
+router.post('/:noteID/purchase/:userID', auth, noteController.purchaseNote);
 
 // GET /api/notes/:noteID/download
-router.get('/:noteID/download', noteController.downloadNote);
+router.get('/:noteID/download', auth, noteController.downloadNote);
 
 // DELETE /api/notes/:noteID
-router.delete('/:noteID', noteController.deleteNote);
+router.delete('/:noteID', auth, noteController.deleteNote);
 
 module.exports = router;
