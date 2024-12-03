@@ -1,4 +1,6 @@
 // controllers/userController.js
+// noinspection JSCheckFunctionSignatures
+
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -27,7 +29,7 @@ exports.logIn = async (req, res) => {
         if (!match) return res.status(400).json({ error: 'Invalid credentials' });
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
+        res.status(200).json({ message: 'Successful login', token });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
