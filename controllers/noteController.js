@@ -54,7 +54,6 @@ exports.uploadNote = async (req, res) => {
 
         res.status(201).json({note, previewImage});
     } catch (error) {
-        console.error("Error during upload:", error.message);
         res.status(500).json({error: error.message});
     }
 };
