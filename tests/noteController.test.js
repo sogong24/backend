@@ -360,10 +360,15 @@ describe('Note Controller', () => {
         it('should return the note for download', async () => {
             // Arrange
             const noteID = 'n1';
+            const extraPath = '/uploads/test.txt';
+            const mockFilePath = path.join(__dirname, '..', extraPath);
+            fs.writeFileSync(mockFilePath, 'This is a mock file content.');
+
             const note = {
                 id: noteID,
                 title: 'Note 1',
                 description: 'Description 1',
+                fileURL: 'http://localhost:3000' + extraPath,
                 save: jest.fn().mockResolvedValue(),
             };
             Note.findByPk.mockResolvedValue(note);
@@ -374,8 +379,10 @@ describe('Note Controller', () => {
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(200);
-            const expectedNote = {id: 'n1', title: 'Note 1', description: 'Description 1'};
-            expect(response.body).toMatchObject(expectedNote);
+            expect(response.header['content-type']).toBe('text/plain; charset=UTF-8');
+
+            // Clean up
+            fs.unlinkSync(mockFilePath);
         });
 
         it('should return 404 if note not found', async () => {

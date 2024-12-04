@@ -140,7 +140,7 @@ exports.downloadNote = async (req, res) => {
 
         res.download(filePath, (err) => {
             if (err) {
-                res.status(500).json({error: err.message});
+                res.status(500).json({error: 'Failed to download file'});
             }
         })
 
