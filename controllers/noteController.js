@@ -2,6 +2,7 @@
 const Note = require('../models/Note');
 const User = require('../models/User');
 const path = require("node:path");
+const pdf = require("pdf-poppler");
 
 exports.retrieveNoteList = async (req, res) => {
     const {courseID} = req.params;
@@ -17,27 +18,53 @@ exports.retrieveNoteList = async (req, res) => {
 
 // previewURL 관련 기능 추가 필요
 exports.uploadNote = async (req, res) => {
-    const {uploaderID, courseID, title, description} = req.body;
+    const { uploaderID, courseID, title, description } = req.body;
+
     try {
-        // // Multer로 처리된 파일
+        // Multer로 업로드된 파일 확인
         const file = req.file;
         if (!file) {
-            return res.status(400).json({error: 'File is required'});
+            return res.status(400).json({ error: "File is required" });
         }
 
-        // 파일 경로 생성
-        const fileURL = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+        // PDF 파일 경로 및 출력 디렉터리 생성
+        const pdfPath = path.join(__dirname, "../uploads", file.filename); // 업로드된 PDF 파일 경로
+        const outputDir = path.join(__dirname, "../uploads"); // 출력 디렉터리
 
+        // Step 1: Poppler 옵션 설정
+        const options = {
+            format: "png", // 출력 이미지 포맷
+            out_dir: outputDir, // 출력 디렉터리
+            out_prefix: `${file.filename}-preview`, // 출력 파일 이름 접두사
+            page: 1, // 첫 번째 페이지만 변환
+        };
+
+        // Step 2: PDF 첫 페이지를 PNG 이미지로 변환
+        await pdf.convert(pdfPath, options);
+
+        // Step 3: 변환된 이미지 파일 경로 생성
+        const previewImageName = `${file.filename}-preview-1.png`;
+        const previewImagePath = path.join(outputDir, previewImageName);
+        const previewURL = `${req.protocol}://${req.get("host")}/uploads/${previewImageName}`;
+
+        // Step 4: PDF URL 생성
+        const fileURL = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
+
+        // Step 5: 데이터베이스에 저장
         const note = await Note.create({
             uploaderID,
             courseID,
             title,
             description,
-            fileURL
+            fileURL,
+            previewURL,
         });
+
+        // 성공 응답
         res.status(201).json(note);
     } catch (error) {
-        res.status(500).json({error: error.message});
+        console.error("Error during upload:", error.message);
+        res.status(500).json({ error: error.message });
     }
 };
 
