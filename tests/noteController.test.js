@@ -1,5 +1,5 @@
 // test/noteController.test.js
-// noinspection JSUnresolvedReference,DuplicatedCode
+// noinspection JSUnresolvedReference,DuplicatedCode,JSCheckFunctionSignatures
 
 const request = require('supertest');
 const express = require('express');
@@ -148,7 +148,6 @@ describe('Note Controller', () => {
         it('should increment likesCount of the note', async () => {
             // Arrange
             const noteID = 'n1';
-            // noinspection JSCheckFunctionSignatures
             const note = {
                 id: noteID,
                 likesCount: 10,
