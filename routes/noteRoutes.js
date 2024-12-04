@@ -35,7 +35,7 @@ router.post('/:noteID/dislike', auth, noteController.dislikeNote);
 router.post('/:noteID/purchase/:userID', noteController.purchaseNote);
 
 // GET /api/notes/:noteID/download
-router.get('/:noteID/download', noteController.downloadNote);
+router.get('/:noteID/download/:userID', noteController.downloadNote);
 
 // DELETE /api/notes/:noteID
 router.delete('/:noteID', noteController.deleteNote);
