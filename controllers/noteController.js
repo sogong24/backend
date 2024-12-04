@@ -2,7 +2,7 @@
 const Note = require('../models/Note');
 const User = require('../models/User');
 const path = require("node:path");
-const { Poppler } = require("node-poppler");
+const {Poppler} = require("node-poppler");
 const fs = require("node:fs");
 
 exports.retrieveNoteList = async (req, res) => {
@@ -28,7 +28,15 @@ exports.uploadNote = async (req, res) => {
             return res.status(400).json({error: "File is required"});
         }
 
-        const pdfBytes = fs.readFileSync(file.path);
+        if (file.mimetype !== 'application/pdf') {
+            return res.status(400).json({error: 'Only PDF files are allowed'});
+        }
+
+        const user = await User.findByPk(uploaderID);
+        if (!user) return res.status(404).json({error: 'User not found'});
+
+        const pdfBytes = process.env.NODE_ENV === 'test'
+            ? file.buffer : fs.readFileSync(file.path);
 
         const poppler = new Poppler();
         const option = {
@@ -37,10 +45,10 @@ exports.uploadNote = async (req, res) => {
             pngFile: true
         }
 
-        const previewImageName = `uploads/previews/${file.filename}-preview`;
-        const previewImage = await poppler.pdfToCairo(pdfBytes, previewImageName, option);
+        const previewImagePath = `uploads/previews/${file.filename}-preview`;
+        const previewImage = await poppler.pdfToCairo(pdfBytes, previewImagePath, option);
 
-        const previewURL = `${req.protocol}://${req.get("host")}/${previewImageName}`;
+        const previewURL = `${req.protocol}://${req.get("host")}/${previewImagePath}`;
         const fileURL = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
 
         const note = await Note.create({
@@ -51,6 +59,9 @@ exports.uploadNote = async (req, res) => {
             fileURL,
             previewURL,
         });
+
+        user.point += 10;
+        await user.save();
 
         res.status(201).json({note, previewImage});
     } catch (error) {
