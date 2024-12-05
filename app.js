@@ -9,6 +9,20 @@ const cors = require('cors');
 
 const app = express();
 
+const multer = require('multer');
+const path = require('path');
+
+// Multer 설정
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './uploads/'); // 파일 저장 경로
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName); // 고유 파일 이름 생성
+  }
+});
+
 // Middleware
 app.use(express.json());
 

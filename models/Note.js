@@ -1,8 +1,8 @@
 // models/Note.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Course = require('./Course');
-const User = require('./User');
+// const Course = require('./Course');
+// const User = require('./User');
 
 const Note = sequelize.define('Note', {
     id: {
@@ -32,13 +32,13 @@ const Note = sequelize.define('Note', {
     previewURL: {
         type: DataTypes.STRING,
         validate: {
-            isUrl: true,
+            // isUrl: true,
         },
     },
     fileURL: {
         type: DataTypes.STRING,
         validate: {
-            isUrl: true,
+            // isUrl: true,
         },
     },
     likesCount: {
@@ -54,8 +54,7 @@ const Note = sequelize.define('Note', {
     timestamps: false,
 });
 
-// Associations
-Note.belongsTo(Course, { foreignKey: 'courseID' });
-Note.belongsTo(User, { foreignKey: 'uploaderID' });
+// Note.belongsTo(Course, { foreignKey: 'courseID' });
+// Note.belongsTo(User, { foreignKey: 'uploaderID' });
 
 module.exports = Note;
