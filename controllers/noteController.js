@@ -117,9 +117,12 @@ exports.purchaseNote = async (req, res) => {
             user.point -= 1;
         }
 
-        await user.save();
-        await note.save();
-        res.json(note);
+        const saveOptions = {
+            fields: ['point', 'accessibleNoteIDs']
+        };
+
+        await user.save(saveOptions);
+        res.json({user, note});
     } catch (error) {
         res.status(500).json({error: error.message});
     }
