@@ -1,14 +1,17 @@
 const sequelize = require('../config/database');
 const Course = require('../models/Course');
-const User = require('../models/User');
-const Note = require('../models/Note');
 const { courses } = require('./data');
 
 async function seedCourses() {
     try {
         // 데이터베이스 연결
-        // force: true를 통해 기존 DB는 삭제되고 새로 추가됨
-        await sequelize.sync({ force: true });
+        await sequelize.authenticate();
+
+        // courses 테이블만 삭제
+        await Course.drop();
+
+        // 데이터베이스 동기화 (기존 테이블은 유지하고 변경된 테이블만 수정)
+        await sequelize.sync({ alter: true });
 
         // 미리 정의된 데이터 삽입
         await Course.bulkCreate(courses);

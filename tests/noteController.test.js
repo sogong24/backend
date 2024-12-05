@@ -10,6 +10,8 @@ const path = require("node:path");
 const fs = require("node:fs");
 const multer = require("multer");
 
+require('dotenv').config({path: path.join(__dirname, '.env')});
+
 jest.mock('../models/Note');
 jest.mock('../models/User');
 
@@ -24,7 +26,7 @@ app.post('/api/notes', upload.single('file'), noteController.uploadNote);
 app.post('/api/notes/:noteID/like', noteController.likeNote);
 app.post('/api/notes/:noteID/dislike', noteController.dislikeNote);
 app.post('/api/notes/:noteID/purchase/:userID', noteController.purchaseNote);
-app.get('/api/notes/:noteID/download', noteController.downloadNote);
+app.get('/api/notes/:noteID/download/:userID', noteController.downloadNote);
 app.delete('/api/notes/:noteID', noteController.deleteNote);
 
 describe('Note Controller', () => {
@@ -82,17 +84,80 @@ describe('Note Controller', () => {
     describe('POST /api/notes', () => {
         it('should create a new note', async () => {
             // Arrange
+            const user = {
+                id: 'u1',
+                point: 5,
+                save: jest.fn().mockResolvedValue()
+            }
             const noteData = {
                 uploaderID: 'u1',
                 courseID: 'c1',
                 title: 'New Note',
                 description: 'Note description'
             };
+            User.findByPk.mockResolvedValue(user);
             const createdNote = {id: 'n1', ...noteData};
             Note.create.mockResolvedValue(createdNote);
 
+            const testFilePath = path.join(__dirname, '../uploads/test.pdf');
+            const previewImagePath = path.join(__dirname, '../uploads/previews/undefined-preview-1.png');
+
+            // Act
+            const response = await request(app)
+                .post('/api/notes')
+                .field('uploaderID', noteData.uploaderID)
+                .field('courseID', noteData.courseID)
+                .field('title', noteData.title)
+                .field('description', noteData.description)
+                .attach('file', testFilePath);
+
+            // Assert
+            expect(Note.create).toHaveBeenCalledWith(expect.objectContaining(noteData));
+            expect(User.findByPk).toHaveBeenCalledWith(user.id);
+            expect(response.status).toBe(201);
+            expect(response.body.note).toEqual(createdNote);
+            expect(response.body.previewImage).toBe('No Error');
+            expect(user.point).toBe(5 + 10);
+
+            // Clean up
+            fs.unlinkSync(previewImagePath);
+        });
+
+        it('should return error when attached no file', async () => {
+            //Arrange
+            const noteData = {
+                id: 'n1',
+                uploaderID: 'u1',
+                courseID: 'c1',
+                title: 'New Note',
+                description: 'Note description'
+            };
+
+            // Act
+            const response = await request(app).post('/api/notes').send(noteData);
+
+            // Assert
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('File is required');
+        });
+
+        it('should return error when not attached pdf file', async () => {
+            // Arrange
+            const user = {
+                id: 'u1'
+            }
+            const noteData = {
+                id: 'n1',
+                uploaderID: 'u1',
+                courseID: 'c1',
+                title: 'New Note',
+                description: 'Note description'
+            };
+            User.findByPk.mockResolvedValue(user);
+            Note.create.mockResolvedValue(noteData);
+
             const mockFilePath = path.join(__dirname, '../uploads/test.txt');
-            fs.writeFileSync(mockFilePath, 'This is a mock file content.');
+            fs.writeFileSync(mockFilePath, 'Mock file content');
 
             // Act
             const response = await request(app)
@@ -104,9 +169,8 @@ describe('Note Controller', () => {
                 .attach('file', mockFilePath);
 
             // Assert
-            expect(Note.create).toHaveBeenCalledWith(expect.objectContaining(noteData));
-            expect(response.status).toBe(201);
-            expect(response.body).toEqual(createdNote);
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('Only PDF files are allowed');
 
             // Clean up
             fs.unlinkSync(mockFilePath);
@@ -114,17 +178,21 @@ describe('Note Controller', () => {
 
         it('should handle errors', async () => {
             // Arrange
+            const user = {
+                id: 'u1'
+            };
             const noteData = {
                 uploaderID: 'u1',
                 courseID: 'c1',
                 title: 'New Note',
                 description: 'Note description',
             };
-            const errorMessage = 'file is not defined';
+            User.findByPk.mockResolvedValue(user);
+            const errorMessage = 'Database error';
             Note.create.mockRejectedValue(new Error(errorMessage));
 
-            const mockFilePath = path.join(__dirname, '../uploads/test.txt');
-            fs.writeFileSync(mockFilePath, 'This is a mock file content.');
+            const testFilePath = path.join(__dirname, '../uploads/test.pdf');
+            const previewImagePath = path.join(__dirname, '../uploads/previews/undefined-preview-1.png');
 
             // Act
             const response = await request(app)
@@ -133,14 +201,14 @@ describe('Note Controller', () => {
                 .field('courseID', noteData.courseID)
                 .field('title', noteData.title)
                 .field('description', noteData.description)
-                .attach('file', mockFilePath);
+                .attach('file', testFilePath);
 
             // Assert
             expect(response.status).toBe(500);
             expect(response.body).toEqual({error: errorMessage});
 
             // Clean up
-            fs.unlinkSync(mockFilePath);
+            fs.unlinkSync(previewImagePath);
         });
     });
 
@@ -356,13 +424,19 @@ describe('Note Controller', () => {
         });
     });
 
-    describe('GET /api/notes/:noteID/download', () => {
+    describe('GET /api/notes/:noteID/download/:userID', () => {
         it('should return the note for download', async () => {
             // Arrange
             const noteID = 'n1';
+            const userID = 'u1';
             const extraPath = '/uploads/test.txt';
             const mockFilePath = path.join(__dirname, '..', extraPath);
             fs.writeFileSync(mockFilePath, 'This is a mock file content.');
+
+            const user = {
+                id: userID,
+                accessibleNoteIDs: [noteID]
+            }
 
             const note = {
                 id: noteID,
@@ -372,12 +446,14 @@ describe('Note Controller', () => {
                 save: jest.fn().mockResolvedValue(),
             };
             Note.findByPk.mockResolvedValue(note);
+            User.findByPk.mockResolvedValue(user);
 
             // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download`);
+            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
+            expect(User.findByPk).toHaveBeenCalledWith(userID);
             expect(response.status).toBe(200);
             expect(response.header['content-type']).toBe('text/plain; charset=UTF-8');
 
@@ -388,10 +464,11 @@ describe('Note Controller', () => {
         it('should return 404 if note not found', async () => {
             // Arrange
             const noteID = 'n1';
+            const userID = 'u1';
             Note.findByPk.mockResolvedValue(null);
 
             // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download`);
+            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
@@ -399,14 +476,60 @@ describe('Note Controller', () => {
             expect(response.body).toEqual({error: 'Note not found'});
         });
 
+        it('should return 404 if user not found', async () => {
+            // Arrange
+            const noteID = 'n1';
+            const userID = 'u1';
+            Note.findByPk.mockResolvedValue(noteID);
+            User.findByPk.mockResolvedValue(null);
+
+            // Act
+            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
+
+            // Assert
+            expect(Note.findByPk).toHaveBeenCalledWith(noteID);
+            expect(User.findByPk).toHaveBeenCalledWith(userID);
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({error: 'User not found'});
+        });
+
+        it('should return 400 if user has no permissions', async () => {
+            // Arrange
+            const noteID = 'n1';
+            const userID = 'u1';
+            const note = {
+                id: noteID,
+                title: 'Note 1',
+                description: 'Description 1',
+                fileURL: 'http://localhost:3000/uplodas/permissionError.txt',
+                save: jest.fn().mockResolvedValue()
+            };
+            const user = {
+                id: userID,
+                accessibleNoteIDs: []
+            }
+            Note.findByPk.mockResolvedValue(note);
+            User.findByPk.mockResolvedValue(user);
+
+            // Act
+            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
+
+            // Assert
+            expect(Note.findByPk).toHaveBeenCalledWith(noteID);
+            expect(User.findByPk).toHaveBeenCalledWith(userID);
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('No download permissions');
+        });
+
         it('should handle errors', async () => {
             // Arrange
             const noteID = 'n1';
+            const userID = 'u1';
             const errorMessage = 'Database error';
             Note.findByPk.mockRejectedValue(new Error(errorMessage));
 
             // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download`);
+            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);

@@ -2,6 +2,8 @@
 const Note = require('../models/Note');
 const User = require('../models/User');
 const path = require("node:path");
+const {Poppler} = require("node-poppler");
+const fs = require("node:fs");
 
 exports.retrieveNoteList = async (req, res) => {
     const {courseID} = req.params;
@@ -18,24 +20,50 @@ exports.retrieveNoteList = async (req, res) => {
 // previewURL 관련 기능 추가 필요
 exports.uploadNote = async (req, res) => {
     const {uploaderID, courseID, title, description} = req.body;
+
     try {
-        // // Multer로 처리된 파일
+        // Multer로 업로드된 파일 확인
         const file = req.file;
         if (!file) {
-            return res.status(400).json({error: 'File is required'});
+            return res.status(400).json({error: "File is required"});
         }
 
-        // 파일 경로 생성
-        const fileURL = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+        if (file.mimetype !== 'application/pdf') {
+            return res.status(400).json({error: 'Only PDF files are allowed'});
+        }
+
+        const user = await User.findByPk(uploaderID);
+        if (!user) return res.status(404).json({error: 'User not found'});
+
+        const pdfBytes = process.env.NODE_ENV === 'test'
+            ? file.buffer : fs.readFileSync(file.path);
+
+        const poppler = new Poppler();
+        const option = {
+            firstPageToConvert: 1,
+            lastPageToConvert: 1,
+            pngFile: true
+        }
+
+        const previewImagePath = `uploads/previews/${file.filename}-preview`;
+        const previewImage = await poppler.pdfToCairo(pdfBytes, previewImagePath, option);
+
+        const previewURL = `${req.protocol}://${req.get("host")}/${previewImagePath}`;
+        const fileURL = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
 
         const note = await Note.create({
             uploaderID,
             courseID,
             title,
             description,
-            fileURL
+            fileURL,
+            previewURL,
         });
-        res.status(201).json(note);
+
+        user.point += 10;
+        await user.save();
+
+        res.status(201).json({note, previewImage});
     } catch (error) {
         res.status(500).json({error: error.message});
     }
@@ -98,12 +126,17 @@ exports.purchaseNote = async (req, res) => {
 };
 
 exports.downloadNote = async (req, res) => {
-    const {noteID} = req.params;
+    const {noteID, userID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
 
-        // Deduct user points.
+        const user = await User.findByPk(userID);
+        if (!user) return res.status(404).json({error: 'User not found'});
+
+        if (!user.accessibleNoteIDs.includes(noteID)) {
+            return res.status(400).json({error: 'No download permissions'});
+        }
 
         const relativeFilePath = '.' + new URL(note.fileURL).pathname;
         let filePath = path.resolve(relativeFilePath);
