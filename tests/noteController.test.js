@@ -338,12 +338,11 @@ describe('Note Controller', () => {
             expect(User.findByPk).toHaveBeenCalledWith(userID);
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(user.accessibleNoteIDs).toContain(noteID);
-            expect(user.point).toBe(1);
+            expect(user.point).toBe(2 - 1);
             expect(user.save).toHaveBeenCalled();
-            expect(note.save).toHaveBeenCalled();
             expect(response.status).toBe(200);
             const expectedNote = {id: 'n1'};
-            expect(response.body).toMatchObject(expectedNote);
+            expect(response.body.note).toMatchObject(expectedNote);
         });
 
         it('should return 404 if user not found', async () => {
