@@ -1,5 +1,5 @@
 // test/noteController.test.js
-// noinspection DuplicatedCode
+// noinspection JSUnresolvedReference,DuplicatedCode,JSCheckFunctionSignatures
 
 const request = require('supertest');
 const express = require('express');
@@ -544,7 +544,6 @@ describe('Note Controller', () => {
             const note = {
                 id: noteID,
                 destroy: jest.fn().mockResolvedValue(),
-                toJSON: () => ({id: noteID})
             };
             Note.findByPk.mockResolvedValue(note);
 

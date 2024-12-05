@@ -1,4 +1,6 @@
 // test/courseController.test.js
+// noinspection JSUnresolvedReference
+
 const request = require('supertest');
 const express = require('express');
 const courseController = require('../controllers/courseController');
