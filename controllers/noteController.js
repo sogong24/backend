@@ -1,6 +1,7 @@
 // controllers/noteController.js
 const Note = require('../models/Note');
 const User = require('../models/User');
+const Course = require('../models/Course');
 const path = require("node:path");
 const {Poppler} = require("node-poppler");
 const fs = require("node:fs");
@@ -131,30 +132,95 @@ exports.purchaseNote = async (req, res) => {
 exports.downloadNote = async (req, res) => {
     const {noteID, userID} = req.params;
     try {
+        console.log('다운로드 요청 정보:', {
+            noteID,
+            userID,
+            params: req.params
+        });
+
         const note = await Note.findByPk(noteID);
-        if (!note) return res.status(404).json({error: 'Note not found'});
+        if (!note) {
+            console.log('노트를 찾을 수 없음:', noteID);
+            return res.status(404).json({error: 'Note not found'});
+        }
 
         const user = await User.findByPk(userID);
-        if (!user) return res.status(404).json({error: 'User not found'});
+        if (!user) {
+            console.log('사용자를 찾을 수 없음:', userID);
+            return res.status(404).json({error: 'User not found'});
+        }
 
+        console.log('사용자의 접근 가능한 노트:', user.accessibleNoteIDs);
+        
         if (!user.accessibleNoteIDs.includes(noteID)) {
+            console.log('다운로드 권한 없음:', {
+                userID,
+                noteID,
+                accessibleNotes: user.accessibleNoteIDs
+            });
             return res.status(400).json({error: 'No download permissions'});
         }
 
         const relativeFilePath = '.' + new URL(note.fileURL).pathname;
+        console.log('파일 경로:', relativeFilePath);
+        
         let filePath = path.resolve(relativeFilePath);
 
         // Replace %20 (blank encoding code) to blank
         filePath = decodeURIComponent(filePath).replace(/\+/g, ' ');
+        const fileName = `${note.title}.pdf`;
 
-        res.download(filePath, (err) => {
+        res.download(filePath, fileName, (err) => {
             if (err) {
+                console.error('다운로드 에러:', err);
                 res.status(500).json({error: 'Failed to download file'});
             }
-        })
+        });
 
     } catch (error) {
+        console.error('다운로드 처리 에러:', error);
         res.status(500).json({error: error.message});
+    }
+};
+
+exports.getNoteDetail = async (req, res) => {
+    try {
+        const {noteID} = req.params;
+        
+        const note = await Note.findByPk(noteID, {
+            include: [
+                {
+                    model: Course,
+                    attributes: ['grade', 'semester', 'professorName']
+                },
+                {
+                    model: User,
+                    as: 'uploader',
+                    attributes: ['username']
+                }
+            ]
+        });
+
+        if (!note) {
+            return res.status(404).json({ message: '노트를 찾을 수 없습니다.' });
+        }
+
+        const noteDetail = {
+            title: note.title,
+            course: {
+                grade: note.Course.grade,
+                semester: note.Course.semester,
+                professorName: note.Course.professorName
+            },
+            author: note.uploader.username,
+            description: note.description,
+            uploadDate: note.uploadDate
+        };
+
+        res.json(noteDetail);
+    } catch (error) {
+        console.error('노트 상세 조회 에러:', error);
+        res.status(500).json({ message: '노트 정보 조회에 실패했습니다.' });
     }
 };
 

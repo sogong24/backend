@@ -54,3 +54,13 @@ sequelize.sync({ alter: true })
     .catch(err => {
         console.error('😢 Unable to connect to the database:', err);
     });
+
+app.use((err, req, res, next) => {
+    console.error('에러 발생:', {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        params: req.params
+    });
+    res.status(err.status || 500).json({ message: err.message });
+});

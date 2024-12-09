@@ -13,4 +13,12 @@ router.post('/login', userController.logIn);
 // PUT /api/users
 router.put('/', auth, userController.editUserInfo);
 
+// GET /api/users/me
+router.get('/me', auth, userController.retrieveUserInfo);
+
+// 포인트 관련 새로운 라우트들
+router.post('/points/check-download/:noteID', auth, userController.checkDownloadPoint);
+router.post('/points/add-upload', auth, userController.addUploadPoint);
+router.get('/points', auth, userController.getPoints);
+
 module.exports = router;

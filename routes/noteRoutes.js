@@ -17,8 +17,9 @@ const storage = multer.diskStorage({
     }
   });
   
-const upload = multer({ storage: storage });
+  const upload = multer({ storage: storage });
 
+  
 // GET /api/notes/:courseID
 router.get('/:courseID', auth, noteController.retrieveNoteList);
 
@@ -36,6 +37,9 @@ router.post('/:noteID/purchase/:userID', auth, noteController.purchaseNote);
 
 // GET /api/notes/:noteID/download/:userID
 router.get('/:noteID/download/:userID', auth, noteController.downloadNote);
+
+// GET /api/notes/:noteID/detail
+router.get('/:noteID/detail', noteController.getNoteDetail);
 
 // DELETE /api/notes/:noteID
 router.delete('/:noteID', auth, noteController.deleteNote);
