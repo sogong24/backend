@@ -13,4 +13,7 @@ router.post('/login', userController.logIn);
 // PUT /api/users
 router.put('/', auth, userController.editUserInfo);
 
+// GET /api/users/me
+router.get('/me', auth, userController.retrieveUserInfo);
+
 module.exports = router;
