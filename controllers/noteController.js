@@ -98,10 +98,14 @@ exports.likeNote = async (req, res) => {
         if (userId === note.uploaderID) return res.status(400).json({error: 'Cannot like your own note'});
 
         const uploader = await User.findByPk(note.uploaderID);
-        if (uploader) uploader.likeCount += 1;
+        if (!uploader) return res.status(404).json({error: 'Uploader not found'});
+        if (note.reviewedUserIDs.includes(userId)) return res.status(400).json({error: 'Already reviewed'});
 
+        uploader.likeCount += 1;
         note.likeCount += 1;
-        await note.save();
+        note.reviewedUserIDs.push(userId);
+
+        await note.save({fields: ['likeCount', 'reviewedUserIDs']});
         await uploader.save();
         res.json(note);
     } catch (error) {
@@ -116,13 +120,17 @@ exports.dislikeNote = async (req, res) => {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
 
-        if (userId === note.uploaderID) return res.status(400).json({error: 'Cannot like your own note'});
+        if (userId === note.uploaderID) return res.status(400).json({error: 'Cannot dislike your own note'});
 
         const uploader = await User.findByPk(note.uploaderID);
-        if (uploader) uploader.dislikeCount += 1;
+        if (!uploader) return res.status(404).json({error: 'Uploader not found'});
+        if (note.reviewedUserIDs.includes(userId)) return res.status(400).json({error: 'Already reviewed'});
 
+        uploader.dislikeCount += 1;
         note.dislikeCount += 1;
-        await note.save();
+        note.reviewedUserIDs.push(userId);
+
+        await note.save({fields: ['dislikeCount', 'reviewedUserIDs']});
         await uploader.save();
         res.json(note);
     } catch (error) {
@@ -203,6 +211,9 @@ exports.deleteNote = async (req, res) => {
         const uploader = await User.findByPk(note.uploaderID);
         if (!uploader) return res.status(404).json({error: 'Uploader not found'});
         if (uploader.id !== userId) return res.status(400).json({error: 'Can only delete your own note'});
+
+        if (uploader.point < 10) uploader.point = 0;
+        else uploader.point -= 10;
 
         uploader.likeCount -= note.likeCount;
         uploader.dislikeCount -= note.dislikeCount;
