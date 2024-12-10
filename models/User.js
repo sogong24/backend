@@ -30,6 +30,14 @@ const User = sequelize.define('User', {
         type: DataTypes.INTEGER,
         defaultValue: 0,
     },
+    likeCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    dislikeCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
     accessibleNoteIDs: {
         type: DataTypes.ARRAY(DataTypes.UUID),
         defaultValue: [],

@@ -89,12 +89,20 @@ exports.uploadNote = async (req, res) => {
 };
 
 exports.likeNote = async (req, res) => {
+    const {userId} = req.user;
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
+
+        if (userId === note.uploaderID) return res.status(400).json({error: 'Cannot like your own note'});
+
+        const uploader = await User.findByPk(note.uploaderID);
+        if (uploader) uploader.likeCount += 1;
+
         note.likesCount += 1;
         await note.save();
+        await uploader.save();
         res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});
@@ -102,12 +110,20 @@ exports.likeNote = async (req, res) => {
 };
 
 exports.dislikeNote = async (req, res) => {
+    const {userId} = req.user;
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
+
+        if (userId === note.uploaderID) return res.status(400).json({error: 'Cannot like your own note'});
+
+        const uploader = await User.findByPk(note.uploaderID);
+        if (uploader) uploader.disklikeCount += 1;
+
         note.dislikesCount += 1;
         await note.save();
+        await uploader.save();
         res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});
@@ -178,12 +194,21 @@ exports.downloadNote = async (req, res) => {
 };
 
 exports.deleteNote = async (req, res) => {
+    const {userId} = req.user;
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
 
+        const uploader = await User.findByPk(note.uploaderID);
+        if (!uploader) return res.status(404).json({error: 'Uploader not found'});
+        if (uploader.id !== userId) return res.status(400).json({error: 'Can only delete your own note'});
+
+        uploader.likeCount -= note.likesCount;
+        uploader.disklikeCount -= note.disklikeCount;
+
         await note.destroy();
+        await uploader.save();
         res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});
