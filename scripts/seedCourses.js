@@ -8,7 +8,7 @@ async function seedCourses() {
         await sequelize.authenticate();
 
         // courses 테이블만 삭제
-        await Course.drop();
+        await sequelize.query('DROP TABLE IF EXISTS "courses" CASCADE');
 
         // 데이터베이스 동기화 (기존 테이블은 유지하고 변경된 테이블만 수정)
         await sequelize.sync({ alter: true });

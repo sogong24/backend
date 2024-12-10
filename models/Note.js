@@ -1,8 +1,6 @@
 // models/Note.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-// const Course = require('./Course');
-// const User = require('./User');
 
 const Note = sequelize.define('Note', {
     id: {
@@ -54,8 +52,5 @@ const Note = sequelize.define('Note', {
     tableName: 'notes',
     timestamps: false,
 });
-
-// Note.belongsTo(Course, { foreignKey: 'courseID' });
-// Note.belongsTo(User, { foreignKey: 'uploaderID' });
 
 module.exports = Note;
