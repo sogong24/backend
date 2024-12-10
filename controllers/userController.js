@@ -66,6 +66,18 @@ exports.retrieveUserInfo = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+//임시 - 마이페이지용
+exports.getUserById = async (req, res) => {
+    const { userId } = req.params;  // URL에서 userId를 받음
+    try {
+        const user = await User.findByPk(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 // 다운로드 전 포인트 확인 및 차감
 exports.checkDownloadPoint = async (req, res) => {

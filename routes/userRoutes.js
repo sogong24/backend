@@ -14,7 +14,8 @@ router.post('/login', userController.logIn);
 router.put('/', auth, userController.editUserInfo);
 
 // GET /api/users/me
-router.get('/me', auth, userController.retrieveUserInfo);
+// router.get('/me', auth, userController.retrieveUserInfo);
+router.get('/:userId', auth, userController.getUserById);
 
 // 포인트 관련 새로운 라우트들
 router.post('/points/check-download/:noteID', auth, userController.checkDownloadPoint);
