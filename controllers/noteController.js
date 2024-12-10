@@ -5,6 +5,15 @@ const path = require("node:path");
 const {Poppler} = require("node-poppler");
 const fs = require("node:fs");
 
+exports.retrieveAllNotes = async (req, res) => {
+   try {
+       const allNotes = await Note.findAll();
+       res.json(allNotes);
+   } catch (error) {
+       res.status(500).json({error: error.message});
+   }
+};
+
 exports.retrieveNoteList = async (req, res) => {
     const {courseID} = req.params;
     try {
@@ -12,6 +21,16 @@ exports.retrieveNoteList = async (req, res) => {
             where: {courseID},
         });
         res.json(notes);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+};
+
+exports.retrieveNoteDetail = async (req, res) => {
+    const {noteID} = req.params;
+    try {
+        const note = await Note.findByPk(noteID);
+        res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});
     }
