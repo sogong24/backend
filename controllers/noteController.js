@@ -1,6 +1,7 @@
 // controllers/noteController.js
 const Note = require('../models/Note');
 const User = require('../models/User');
+const Course = require('../models/Course');
 const path = require("node:path");
 const {Poppler} = require("node-poppler");
 const fs = require("node:fs");
@@ -30,7 +31,10 @@ exports.retrieveNoteDetail = async (req, res) => {
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
-        res.json(note);
+        if (!note) return res.status(404).json({error: 'Note not found'});
+        const course = await Course.findByPk(note.courseID);
+        if (!course) return res.status(404).json({error: 'Course not found'});
+        res.json({note, course});
     } catch (error) {
         res.status(500).json({error: error.message});
     }
@@ -53,6 +57,7 @@ exports.uploadNote = async (req, res) => {
 
         const user = await User.findByPk(uploaderID);
         if (!user) return res.status(404).json({error: 'User not found'});
+        const uploaderName = user.username;
 
         const pdfBytes = process.env.NODE_ENV === 'test'
             ? file.buffer : fs.readFileSync(file.path);
@@ -72,6 +77,7 @@ exports.uploadNote = async (req, res) => {
 
         const note = await Note.create({
             uploaderID,
+            uploaderName,
             courseID,
             title,
             description,

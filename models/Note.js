@@ -18,6 +18,10 @@ const Note = sequelize.define('Note', {
         type: DataTypes.UUID,
         allowNull: false,
     },
+    uploaderName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
     courseID: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -31,15 +35,9 @@ const Note = sequelize.define('Note', {
     },
     previewURL: {
         type: DataTypes.STRING,
-        validate: {
-            // isUrl: true,
-        },
     },
     fileURL: {
         type: DataTypes.STRING,
-        validate: {
-            // isUrl: true,
-        },
     },
     likeCount: {
         type: DataTypes.INTEGER,
