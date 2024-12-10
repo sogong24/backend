@@ -41,11 +41,11 @@ const Note = sequelize.define('Note', {
             // isUrl: true,
         },
     },
-    likesCount: {
+    likeCount: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
     },
-    dislikesCount: {
+    dislikeCount: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
     },

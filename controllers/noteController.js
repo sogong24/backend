@@ -100,7 +100,7 @@ exports.likeNote = async (req, res) => {
         const uploader = await User.findByPk(note.uploaderID);
         if (uploader) uploader.likeCount += 1;
 
-        note.likesCount += 1;
+        note.likeCount += 1;
         await note.save();
         await uploader.save();
         res.json(note);
@@ -121,7 +121,7 @@ exports.dislikeNote = async (req, res) => {
         const uploader = await User.findByPk(note.uploaderID);
         if (uploader) uploader.dislikeCount += 1;
 
-        note.dislikesCount += 1;
+        note.dislikeCount += 1;
         await note.save();
         await uploader.save();
         res.json(note);
@@ -204,8 +204,8 @@ exports.deleteNote = async (req, res) => {
         if (!uploader) return res.status(404).json({error: 'Uploader not found'});
         if (uploader.id !== userId) return res.status(400).json({error: 'Can only delete your own note'});
 
-        uploader.likeCount -= note.likesCount;
-        uploader.dislikeCount -= note.dislikesCount;
+        uploader.likeCount -= note.likeCount;
+        uploader.dislikeCount -= note.dislikeCount;
 
         await note.destroy();
         await uploader.save();
