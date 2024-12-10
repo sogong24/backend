@@ -20,7 +20,6 @@ const Note = sequelize.define('Note', {
     },
     uploaderName: {
         type: DataTypes.STRING,
-        allowNull: false,
     },
     courseID: {
         type: DataTypes.UUID,
