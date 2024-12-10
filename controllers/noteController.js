@@ -6,6 +6,15 @@ const path = require("node:path");
 const {Poppler} = require("node-poppler");
 const fs = require("node:fs");
 
+exports.retrieveAllNotes = async (req, res) => {
+   try {
+       const allNotes = await Note.findAll();
+       res.json(allNotes);
+   } catch (error) {
+       res.status(500).json({error: error.message});
+   }
+};
+
 exports.retrieveNoteList = async (req, res) => {
     const {courseID} = req.params;
     try {
@@ -13,6 +22,16 @@ exports.retrieveNoteList = async (req, res) => {
             where: {courseID},
         });
         res.json(notes);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+};
+
+exports.retrieveNoteDetail = async (req, res) => {
+    const {noteID} = req.params;
+    try {
+        const note = await Note.findByPk(noteID);
+        res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});
     }
@@ -71,12 +90,24 @@ exports.uploadNote = async (req, res) => {
 };
 
 exports.likeNote = async (req, res) => {
+    const {userId} = req.user;
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
-        note.likesCount += 1;
-        await note.save();
+
+        if (userId === note.uploaderID) return res.status(400).json({error: 'Cannot like your own note'});
+
+        const uploader = await User.findByPk(note.uploaderID);
+        if (!uploader) return res.status(404).json({error: 'Uploader not found'});
+        if (note.reviewedUserIDs.includes(userId)) return res.status(400).json({error: 'Already reviewed'});
+
+        uploader.likeCount += 1;
+        note.likeCount += 1;
+        note.reviewedUserIDs.push(userId);
+
+        await note.save({fields: ['likeCount', 'reviewedUserIDs']});
+        await uploader.save();
         res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});
@@ -84,12 +115,24 @@ exports.likeNote = async (req, res) => {
 };
 
 exports.dislikeNote = async (req, res) => {
+    const {userId} = req.user;
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
-        note.dislikesCount += 1;
-        await note.save();
+
+        if (userId === note.uploaderID) return res.status(400).json({error: 'Cannot dislike your own note'});
+
+        const uploader = await User.findByPk(note.uploaderID);
+        if (!uploader) return res.status(404).json({error: 'Uploader not found'});
+        if (note.reviewedUserIDs.includes(userId)) return res.status(400).json({error: 'Already reviewed'});
+
+        uploader.dislikeCount += 1;
+        note.dislikeCount += 1;
+        note.reviewedUserIDs.push(userId);
+
+        await note.save({fields: ['dislikeCount', 'reviewedUserIDs']});
+        await uploader.save();
         res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});
@@ -225,12 +268,24 @@ exports.getNoteDetail = async (req, res) => {
 };
 
 exports.deleteNote = async (req, res) => {
+    const {userId} = req.user;
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
 
+        const uploader = await User.findByPk(note.uploaderID);
+        if (!uploader) return res.status(404).json({error: 'Uploader not found'});
+        if (uploader.id !== userId) return res.status(400).json({error: 'Can only delete your own note'});
+
+        if (uploader.point < 10) uploader.point = 0;
+        else uploader.point -= 10;
+
+        uploader.likeCount -= note.likeCount;
+        uploader.dislikeCount -= note.dislikeCount;
+
         await note.destroy();
+        await uploader.save();
         res.json(note);
     } catch (error) {
         res.status(500).json({error: error.message});

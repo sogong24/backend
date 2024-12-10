@@ -41,14 +41,18 @@ const Note = sequelize.define('Note', {
             // isUrl: true,
         },
     },
-    likesCount: {
+    likeCount: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
     },
-    dislikesCount: {
+    dislikeCount: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
     },
+    reviewedUserIDs: {
+        type: DataTypes.ARRAY(DataTypes.UUID),
+        defaultValue: []
+    }
 }, {
     tableName: 'notes',
     timestamps: false,

@@ -17,11 +17,17 @@ const storage = multer.diskStorage({
     }
   });
   
-  const upload = multer({ storage: storage });
+const upload = multer({ storage: storage });
+
+// GET /api/notes
+router.get('/', auth, noteController.retrieveAllNotes);
 
   
 // GET /api/notes/:courseID
 router.get('/:courseID', auth, noteController.retrieveNoteList);
+
+// GET /api/notes/detail/:noteID
+router.get('/detail/:noteID', auth, noteController.retrieveNoteDetail);
 
 // POST /api/notes
 router.post('/', auth, upload.single('file'), noteController.uploadNote);
