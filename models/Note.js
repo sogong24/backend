@@ -1,8 +1,6 @@
 // models/Note.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-// const Course = require('./Course');
-// const User = require('./User');
 
 const Note = sequelize.define('Note', {
     id: {
@@ -18,6 +16,9 @@ const Note = sequelize.define('Note', {
         type: DataTypes.UUID,
         allowNull: false,
     },
+    uploaderName: {
+        type: DataTypes.STRING,
+    },
     courseID: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -31,15 +32,9 @@ const Note = sequelize.define('Note', {
     },
     previewURL: {
         type: DataTypes.STRING,
-        validate: {
-            // isUrl: true,
-        },
     },
     fileURL: {
         type: DataTypes.STRING,
-        validate: {
-            // isUrl: true,
-        },
     },
     likeCount: {
         type: DataTypes.INTEGER,
@@ -57,8 +52,5 @@ const Note = sequelize.define('Note', {
     tableName: 'notes',
     timestamps: false,
 });
-
-// Note.belongsTo(Course, { foreignKey: 'courseID' });
-// Note.belongsTo(User, { foreignKey: 'uploaderID' });
 
 module.exports = Note;

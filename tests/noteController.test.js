@@ -20,13 +20,19 @@ app.use(express.json());
 
 const storage = multer.memoryStorage();
 const upload = multer({storage});
+const testUserID = 't1';
+
+app.use((req, res, next) => {
+    req.user = { userId: testUserID };
+    next();
+});
 
 app.get('/api/notes/:courseID', noteController.retrieveNoteList);
 app.post('/api/notes', upload.single('file'), noteController.uploadNote);
 app.post('/api/notes/:noteID/like', noteController.likeNote);
 app.post('/api/notes/:noteID/dislike', noteController.dislikeNote);
-app.post('/api/notes/:noteID/purchase/:userID', noteController.purchaseNote);
-app.get('/api/notes/:noteID/download/:userID', noteController.downloadNote);
+app.post('/api/notes/:noteID/purchase', noteController.purchaseNote);
+app.get('/api/notes/:noteID/download', noteController.downloadNote);
 app.delete('/api/notes/:noteID', noteController.deleteNote);
 
 describe('Note Controller', () => {
@@ -85,12 +91,12 @@ describe('Note Controller', () => {
         it('should create a new note', async () => {
             // Arrange
             const user = {
-                id: 'u1',
+                id: testUserID,
                 point: 5,
                 save: jest.fn().mockResolvedValue()
             }
             const noteData = {
-                uploaderID: 'u1',
+                uploaderID: testUserID,
                 courseID: 'c1',
                 title: 'New Note',
                 description: 'Note description'
@@ -105,7 +111,6 @@ describe('Note Controller', () => {
             // Act
             const response = await request(app)
                 .post('/api/notes')
-                .field('uploaderID', noteData.uploaderID)
                 .field('courseID', noteData.courseID)
                 .field('title', noteData.title)
                 .field('description', noteData.description)
@@ -113,7 +118,7 @@ describe('Note Controller', () => {
 
             // Assert
             expect(Note.create).toHaveBeenCalledWith(expect.objectContaining(noteData));
-            expect(User.findByPk).toHaveBeenCalledWith(user.id);
+            expect(User.findByPk).toHaveBeenCalledWith(testUserID);
             expect(response.status).toBe(201);
             expect(response.body.note).toEqual(createdNote);
             expect(response.body.previewImage).toBe('No Error');
@@ -216,22 +221,33 @@ describe('Note Controller', () => {
         it('should increment likesCount of the note', async () => {
             // Arrange
             const noteID = 'n1';
+            const userID = 'u1';
             const note = {
                 id: noteID,
-                likesCount: 10,
+                uploaderID: userID,
+                likeCount: 10,
+                reviewedUserIDs: [],
                 save: jest.fn().mockResolvedValue()
             };
+            const user = {
+                id: userID,
+                save: jest.fn().mockResolvedValue()
+            };
+
             Note.findByPk.mockResolvedValue(note);
+            User.findByPk.mockResolvedValue(user);
 
             // Act
             const response = await request(app).post(`/api/notes/${noteID}/like`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
-            expect(note.likesCount).toBe(11);
-            expect(note.save).toHaveBeenCalled();
+            expect(User.findByPk).toHaveBeenCalledWith(userID);
             expect(response.status).toBe(200);
-            const expectedNote = {id: 'n1', likesCount: 11};
+            expect(note.save).toHaveBeenCalled();
+            expect(user.save).toHaveBeenCalled();
+            expect(note.likeCount).toBe(11);
+            const expectedNote = {id: 'n1', likeCount: 11};
             expect(response.body).toMatchObject(expectedNote);
         });
 
@@ -241,7 +257,7 @@ describe('Note Controller', () => {
             Note.findByPk.mockResolvedValue(null);
 
             // Act
-            const response = await request(app).post(`/api/notes/${noteID}/like`);
+            const response = await request(app).post(`/api/notes/${noteID}/like`)
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
@@ -256,7 +272,7 @@ describe('Note Controller', () => {
             Note.findByPk.mockRejectedValue(new Error(errorMessage));
 
             // Act
-            const response = await request(app).post(`/api/notes/${noteID}/like`);
+            const response = await request(app).post(`/api/notes/${noteID}/like`)
 
             // Assert
             expect(response.status).toBe(500);
@@ -268,22 +284,33 @@ describe('Note Controller', () => {
         it('should increment dislikesCount of the note', async () => {
             // Arrange
             const noteID = 'n1';
+            const userID = 'u1';
             const note = {
                 id: noteID,
-                dislikesCount: 5,
+                uploaderID: userID,
+                dislikeCount: 5,
+                reviewedUserIDs: [],
+                save: jest.fn().mockResolvedValue()
+            };
+            const user = {
+                id: userID,
                 save: jest.fn().mockResolvedValue()
             };
             Note.findByPk.mockResolvedValue(note);
+            User.findByPk.mockResolvedValue(user);
 
             // Act
-            const response = await request(app).post(`/api/notes/${noteID}/dislike`);
+            const response = await request(app)
+                .post(`/api/notes/${noteID}/dislike`)
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
-            expect(note.dislikesCount).toBe(6);
-            expect(note.save).toHaveBeenCalled();
+            expect(User.findByPk).toHaveBeenCalledWith(userID);
             expect(response.status).toBe(200);
-            const expectedNote = {id: 'n1', dislikesCount: 6};
+            expect(note.save).toHaveBeenCalled();
+            expect(user.save).toHaveBeenCalled();
+            expect(note.dislikeCount).toBe(6);
+            const expectedNote = {id: 'n1', dislikeCount: 6};
             expect(response.body).toMatchObject(expectedNote);
         });
 
@@ -320,9 +347,8 @@ describe('Note Controller', () => {
         it('should purchase the note successfully', async () => {
             // Arrange
             const noteID = 'n1';
-            const userID = 'u1';
             const user = {
-                id: userID,
+                id: testUserID,
                 point: 2,
                 accessibleNoteIDs: [],
                 save: jest.fn().mockResolvedValue(),
@@ -332,10 +358,10 @@ describe('Note Controller', () => {
             Note.findByPk.mockResolvedValue(note);
 
             // Act
-            const response = await request(app).post(`/api/notes/${noteID}/purchase/${userID}`);
+            const response = await request(app).post(`/api/notes/${noteID}/purchase`);
 
             // Assert
-            expect(User.findByPk).toHaveBeenCalledWith(userID);
+            expect(User.findByPk).toHaveBeenCalledWith(testUserID);
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(user.accessibleNoteIDs).toContain(noteID);
             expect(user.point).toBe(2 - 1);
@@ -345,27 +371,11 @@ describe('Note Controller', () => {
             expect(response.body.note).toMatchObject(expectedNote);
         });
 
-        it('should return 404 if user not found', async () => {
-            // Arrange
-            const noteID = 'n1';
-            const userID = 'u1';
-            User.findByPk.mockResolvedValue(null);
-
-            // Act
-            const response = await request(app).post(`/api/notes/${noteID}/purchase/${userID}`);
-
-            // Assert
-            expect(User.findByPk).toHaveBeenCalledWith(userID);
-            expect(response.status).toBe(404);
-            expect(response.body).toEqual({error: 'User not found'});
-        });
-
         it('should return 404 if note not found', async () => {
             // Arrange
             const noteID = 'n1';
-            const userID = 'u1';
             const user = {
-                id: userID,
+                id: testUserID,
                 point: 2,
                 accessibleNoteIDs: [],
                 save: jest.fn().mockResolvedValue(),
@@ -374,10 +384,10 @@ describe('Note Controller', () => {
             Note.findByPk.mockResolvedValue(null);
 
             // Act
-            const response = await request(app).post(`/api/notes/${noteID}/purchase/${userID}`);
+            const response = await request(app).post(`/api/notes/${noteID}/purchase`);
 
             // Assert
-            expect(User.findByPk).toHaveBeenCalledWith(userID);
+            expect(User.findByPk).toHaveBeenCalledWith(testUserID);
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(404);
             expect(response.body).toEqual({error: 'Note not found'});
@@ -386,9 +396,8 @@ describe('Note Controller', () => {
         it('should return 403 if user has not enough points', async () => {
             // Arrange
             const noteID = 'n1';
-            const userID = 'u1';
             const user = {
-                id: userID,
+                id: testUserID,
                 point: 0,
                 accessibleNoteIDs: [],
                 save: jest.fn().mockResolvedValue(),
@@ -398,10 +407,10 @@ describe('Note Controller', () => {
             Note.findByPk.mockResolvedValue(note);
 
             // Act
-            const response = await request(app).post(`/api/notes/${noteID}/purchase/${userID}`);
+            const response = await request(app).post(`/api/notes/${noteID}/purchase`);
 
             // Assert
-            expect(User.findByPk).toHaveBeenCalledWith(userID);
+            expect(User.findByPk).toHaveBeenCalledWith(testUserID);
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
             expect(response.status).toBe(403);
             expect(response.body).toEqual({error: 'Not enough points'});
@@ -410,12 +419,11 @@ describe('Note Controller', () => {
         it('should handle errors', async () => {
             // Arrange
             const noteID = 'n1';
-            const userID = 'u1';
             const errorMessage = 'Database error';
             User.findByPk.mockRejectedValue(new Error(errorMessage));
 
             // Act
-            const response = await request(app).post(`/api/notes/${noteID}/purchase/${userID}`);
+            const response = await request(app).post(`/api/notes/${noteID}/purchase`);
 
             // Assert
             expect(response.status).toBe(500);
@@ -427,13 +435,12 @@ describe('Note Controller', () => {
         it('should return the note for download', async () => {
             // Arrange
             const noteID = 'n1';
-            const userID = 'u1';
             const extraPath = '/uploads/test.txt';
             const mockFilePath = path.join(__dirname, '..', extraPath);
             fs.writeFileSync(mockFilePath, 'This is a mock file content.');
 
             const user = {
-                id: userID,
+                id: testUserID,
                 accessibleNoteIDs: [noteID]
             }
 
@@ -448,11 +455,11 @@ describe('Note Controller', () => {
             User.findByPk.mockResolvedValue(user);
 
             // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
+            const response = await request(app).get(`/api/notes/${noteID}/download`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
-            expect(User.findByPk).toHaveBeenCalledWith(userID);
+            expect(User.findByPk).toHaveBeenCalledWith(testUserID);
             expect(response.status).toBe(200);
             expect(response.header['content-type']).toBe('text/plain; charset=UTF-8');
 
@@ -463,11 +470,10 @@ describe('Note Controller', () => {
         it('should return 404 if note not found', async () => {
             // Arrange
             const noteID = 'n1';
-            const userID = 'u1';
             Note.findByPk.mockResolvedValue(null);
 
             // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
+            const response = await request(app).get(`/api/notes/${noteID}/download`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
@@ -475,27 +481,9 @@ describe('Note Controller', () => {
             expect(response.body).toEqual({error: 'Note not found'});
         });
 
-        it('should return 404 if user not found', async () => {
-            // Arrange
-            const noteID = 'n1';
-            const userID = 'u1';
-            Note.findByPk.mockResolvedValue(noteID);
-            User.findByPk.mockResolvedValue(null);
-
-            // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
-
-            // Assert
-            expect(Note.findByPk).toHaveBeenCalledWith(noteID);
-            expect(User.findByPk).toHaveBeenCalledWith(userID);
-            expect(response.status).toBe(404);
-            expect(response.body).toEqual({error: 'User not found'});
-        });
-
         it('should return 400 if user has no permissions', async () => {
             // Arrange
             const noteID = 'n1';
-            const userID = 'u1';
             const note = {
                 id: noteID,
                 title: 'Note 1',
@@ -504,18 +492,18 @@ describe('Note Controller', () => {
                 save: jest.fn().mockResolvedValue()
             };
             const user = {
-                id: userID,
+                id: testUserID,
                 accessibleNoteIDs: []
             }
             Note.findByPk.mockResolvedValue(note);
             User.findByPk.mockResolvedValue(user);
 
             // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
+            const response = await request(app).get(`/api/notes/${noteID}/download`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
-            expect(User.findByPk).toHaveBeenCalledWith(userID);
+            expect(User.findByPk).toHaveBeenCalledWith(testUserID);
             expect(response.status).toBe(400);
             expect(response.body.error).toBe('No download permissions');
         });
@@ -528,7 +516,7 @@ describe('Note Controller', () => {
             Note.findByPk.mockRejectedValue(new Error(errorMessage));
 
             // Act
-            const response = await request(app).get(`/api/notes/${noteID}/download/${userID}`);
+            const response = await request(app).get(`/api/notes/${noteID}/download`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
@@ -543,19 +531,30 @@ describe('Note Controller', () => {
             const noteID = 'n1';
             const note = {
                 id: noteID,
+                uploaderID: testUserID,
                 destroy: jest.fn().mockResolvedValue(),
             };
+            const uploader = {
+                id: testUserID,
+                point: 10,
+                save: jest.fn().mockResolvedValue()
+            };
+
             Note.findByPk.mockResolvedValue(note);
+            User.findByPk.mockResolvedValue(uploader);
 
             // Act
             const response = await request(app).delete(`/api/notes/${noteID}`);
 
             // Assert
             expect(Note.findByPk).toHaveBeenCalledWith(noteID);
+            expect(User.findByPk).toHaveBeenCalledWith(testUserID);
             expect(note.destroy).toHaveBeenCalled();
+            expect(uploader.save).toHaveBeenCalled();
             expect(response.status).toBe(200);
             const expectedNote = {id: 'n1'};
             expect(response.body).toMatchObject(expectedNote);
+            expect(uploader.point).toBe(0);
         });
 
         it('should return 404 if note not found', async () => {

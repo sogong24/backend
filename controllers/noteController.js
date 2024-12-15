@@ -7,12 +7,12 @@ const {Poppler} = require("node-poppler");
 const fs = require("node:fs");
 
 exports.retrieveAllNotes = async (req, res) => {
-   try {
-       const allNotes = await Note.findAll();
-       res.json(allNotes);
-   } catch (error) {
-       res.status(500).json({error: error.message});
-   }
+    try {
+        const allNotes = await Note.findAll();
+        res.json(allNotes);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
 };
 
 exports.retrieveNoteList = async (req, res) => {
@@ -31,7 +31,12 @@ exports.retrieveNoteDetail = async (req, res) => {
     const {noteID} = req.params;
     try {
         const note = await Note.findByPk(noteID);
-        res.json(note);
+        if (!note) return res.status(404).json({error: 'Note not found'});
+
+        const course = await Course.findByPk(note.courseID);
+        if (!course) return res.status(404).json({error: 'Course not found'});
+
+        res.json({note, course});
     } catch (error) {
         res.status(500).json({error: error.message});
     }
@@ -39,7 +44,8 @@ exports.retrieveNoteDetail = async (req, res) => {
 
 // previewURL 관련 기능 추가 필요
 exports.uploadNote = async (req, res) => {
-    const {uploaderID, courseID, title, description} = req.body;
+    const {userId} = req.user;
+    const {courseID, title, description} = req.body;
 
     try {
         // Multer로 업로드된 파일 확인
@@ -52,8 +58,8 @@ exports.uploadNote = async (req, res) => {
             return res.status(400).json({error: 'Only PDF files are allowed'});
         }
 
-        const user = await User.findByPk(uploaderID);
-        if (!user) return res.status(404).json({error: 'User not found'});
+        const user = await User.findByPk(userId);
+        const uploaderName = user.username;
 
         const pdfBytes = process.env.NODE_ENV === 'test'
             ? file.buffer : fs.readFileSync(file.path);
@@ -72,7 +78,8 @@ exports.uploadNote = async (req, res) => {
         const fileURL = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
 
         const note = await Note.create({
-            uploaderID,
+            uploaderID: userId,
+            uploaderName,
             courseID,
             title,
             description,
@@ -140,11 +147,10 @@ exports.dislikeNote = async (req, res) => {
 };
 
 exports.purchaseNote = async (req, res) => {
-    const {userID, noteID} = req.params;
+    const {userId} = req.user;
+    const {noteID} = req.params;
     try {
-        const user = await User.findByPk(userID);
-        if (!user) return res.status(404).json({error: 'User not found'});
-
+        const user = await User.findByPk(userId);
         const note = await Note.findByPk(noteID);
         if (!note) return res.status(404).json({error: 'Note not found'});
 
@@ -173,28 +179,13 @@ exports.purchaseNote = async (req, res) => {
 };
 
 exports.downloadNote = async (req, res) => {
-    const {noteID, userID} = req.params;
+    const {userId} = req.user;
+    const {noteID} = req.params;
     try {
-        console.log('다운로드 요청 정보:', {
-            noteID,
-            userID,
-            params: req.params
-        });
-
+        const user = await User.findByPk(userId);
         const note = await Note.findByPk(noteID);
-        if (!note) {
-            console.log('노트를 찾을 수 없음:', noteID);
-            return res.status(404).json({error: 'Note not found'});
-        }
+        if (!note) return res.status(404).json({error: 'Note not found'});
 
-        const user = await User.findByPk(userID);
-        if (!user) {
-            console.log('사용자를 찾을 수 없음:', userID);
-            return res.status(404).json({error: 'User not found'});
-        }
-
-        console.log('사용자의 접근 가능한 노트:', user.accessibleNoteIDs);
-        
         if (!user.accessibleNoteIDs.includes(noteID)) {
             console.log('다운로드 권한 없음:', {
                 userID,

@@ -38,11 +38,11 @@ router.post('/:noteID/like', auth, noteController.likeNote);
 // POST /api/notes/:noteID/dislike
 router.post('/:noteID/dislike', auth, noteController.dislikeNote);
 
-// POST /api/notes/:noteID/purchase/:userID
-router.post('/:noteID/purchase/:userID', auth, noteController.purchaseNote);
+// POST /api/notes/:noteID/purchase
+router.post('/:noteID/purchase', auth, noteController.purchaseNote);
 
-// GET /api/notes/:noteID/download/:userID
-router.get('/:noteID/download/:userID', auth, noteController.downloadNote);
+// GET /api/notes/:noteID/download
+router.get('/:noteID/download', auth, noteController.downloadNote);
 
 // GET /api/notes/:noteID/detail
 router.get('/:noteID/detail', noteController.getNoteDetail);
